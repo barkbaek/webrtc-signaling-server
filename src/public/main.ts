@@ -84,9 +84,9 @@ const onLogin = (success : boolean) => {
   }
 }
 
-let yourVideo : any = document.querySelector('#yours'),
-    theirVideo : any = document.querySelector('#theirs'),
-    yourConnection : any, stream : any;
+const yourVideo : any = document.querySelector('#yours'),
+    theirVideo : any = document.querySelector('#theirs');
+let yourConnection : RTCPeerConnection, stream : MediaStream;
 
 const startConnection = () => {
   if (hasUserMedia()) {
@@ -109,7 +109,7 @@ const startConnection = () => {
   }
 }
 
-const setupPeerConnection = (stream: any) => {
+const setupPeerConnection = (stream: MediaStream) => {
   let configuration = {'iceServers': [
       {'urls': 'stun:stun.services.mozilla.com'},
       {'urls': 'stun:stun.l.google.com:19302'}
@@ -119,7 +119,7 @@ const setupPeerConnection = (stream: any) => {
   console.log(`setupPeerConnection()`);
 
   // Setup stream listening
-  stream.getTracks().forEach((track : any) => {
+  stream.getTracks().forEach((track : MediaStreamTrack) => {
     console.log("yourConnection.addTrack!");
     yourConnection.addTrack(track, stream);
   });
@@ -162,7 +162,7 @@ callButton.addEventListener("click", () => {
 const startPeerConnection = async (user : string) => {
   connectedUser = user;
   console.log(`startPeerConnection()`);
-  const offer: any = await yourConnection.createOffer();
+  const offer: RTCSessionDescriptionInit = await yourConnection.createOffer();
   console.log(`yourConnection.createOffer()`);
   send({
     type: "offer",
@@ -172,11 +172,11 @@ const startPeerConnection = async (user : string) => {
   console.log(`yourConnection.setLocalDescription() - this is from yourConnection.createOffer()`);
 }
 
-const onOffer = async (offer : any, name : string) => {
+const onOffer = async (offer : RTCSessionDescriptionInit, name : string) => {
   console.log(`onOffer()`);
   connectedUser = name;
   yourConnection.setRemoteDescription(new RTCSessionDescription(offer));
-  const answer: any = await yourConnection.createAnswer();
+  const answer: RTCSessionDescriptionInit= await yourConnection.createAnswer();
   console.log(`yourConnection.createAnswer(), yourConnection.setLocalDescription()`);
   yourConnection.setLocalDescription(answer);
   send({
@@ -185,7 +185,7 @@ const onOffer = async (offer : any, name : string) => {
   });
 }
 
-const onAnswer = (answer: any) => {
+const onAnswer = (answer: RTCSessionDescriptionInit) => {
   console.log(`onAnswer() - yourConnection.setRemoteDescription()`);
   yourConnection.setRemoteDescription(new RTCSessionDescription(answer));
 }

@@ -9,9 +9,14 @@ const http = require('http').Server(app);
 const port = 3000;
 console.log(__dirname);
 app.use(express_1.default.static(__dirname + '/public'));
+/*
+interface Users {
+    [key: string]: object
+}
+*/
 const WebSocketServer = require('ws').Server;
 const wss = new WebSocketServer({ port: 8888 });
-let users = {};
+let users = new Map();
 wss.on('connection', (connection) => {
     connection.on('message', (message) => {
         let data, conn;
@@ -25,14 +30,14 @@ wss.on('connection', (connection) => {
         switch (data.type) {
             case "login":
                 console.log("User logged in as", data.name);
-                if (users[data.name]) {
+                if (users.get(data.name)) {
                     sendTo(connection, {
                         type: "login",
                         success: false
                     });
                 }
                 else {
-                    users[data.name] = connection;
+                    users.set(data.name, connection);
                     connection.name = data.name;
                     sendTo(connection, {
                         type: "login",
@@ -42,7 +47,7 @@ wss.on('connection', (connection) => {
                 break;
             case "offer":
                 console.log("Sending offer to", data.name);
-                conn = users[data.name];
+                conn = users.get(data.name);
                 if (conn != null) {
                     connection.otherName = data.name;
                     sendTo(conn, {
@@ -54,7 +59,7 @@ wss.on('connection', (connection) => {
                 break;
             case "answer":
                 console.log("Sending answer to", data.name);
-                conn = users[data.name];
+                conn = users.get(data.name);
                 if (conn != null) {
                     connection.otherName = data.name;
                     sendTo(conn, {
@@ -65,7 +70,7 @@ wss.on('connection', (connection) => {
                 break;
             case "candidate":
                 console.log("Sending candidate to", data.name);
-                conn = users[data.name];
+                conn = users.get(data.name);
                 if (conn != null) {
                     sendTo(conn, {
                         type: "candidate",
@@ -75,7 +80,7 @@ wss.on('connection', (connection) => {
                 break;
             case "leave":
                 console.log("Disconnecting user from", data.name);
-                conn = users[data.name];
+                conn = users.get(data.name);
                 Object.assign(conn, { otherName: null });
                 if (conn != null) {
                     sendTo(conn, {
@@ -93,10 +98,10 @@ wss.on('connection', (connection) => {
     });
     connection.on('close', () => {
         if (connection.name) {
-            delete users[connection.name];
+            users.delete(connection.name);
             if (connection.otherName) {
                 console.log("Disconnecting user from", connection.otherName);
-                let conn = users[connection.otherName];
+                let conn = users.get(connection.otherName);
                 Object.assign(conn, { otherName: null });
                 if (conn != null) {
                     sendTo(conn, {

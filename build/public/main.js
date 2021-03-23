@@ -74,7 +74,8 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
             startConnection();
         }
     };
-    let yourVideo = document.querySelector('#yours'), theirVideo = document.querySelector('#theirs'), yourConnection, stream;
+    const yourVideo = document.querySelector('#yours'), theirVideo = document.querySelector('#theirs');
+    let yourConnection, stream;
     const startConnection = () => {
         if (hasUserMedia()) {
             navigator.getUserMedia({ video: true, audio: true }, function (myStream) {
