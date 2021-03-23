@@ -1,16 +1,17 @@
-var name, connectedUser;
+(() => {
+let name: string;
+let connectedUser: string;
+const connection = new WebSocket('ws://localhost:8888');
 
-var connection = new WebSocket('ws://localhost:8888');
-
-connection.onopen = function () {
+connection.onopen = () => {
   console.log("Connected");
 };
 
 // Handle all messages through this callback
-connection.onmessage = function (message) {
+connection.onmessage = (message) => {
   console.log("Got message", message.data);
 
-  var data = JSON.parse(message.data);
+  let data = JSON.parse(message.data);
 
   switch(data.type) {
     case "login":
@@ -33,33 +34,32 @@ connection.onmessage = function (message) {
   }
 };
 
-connection.onerror = function (err) {
+connection.onerror = (err) => {
   console.log("Got error", err);
 };
 
 // Alias for sending messages in JSON format
-function send(message) {
+const send = (message : object) => {
   console.log(`send message: `);
   console.dir(message);
   if (connectedUser) {
-    message.name = connectedUser;
+    Object.assign(message, { name: connectedUser });
   }
-
   connection.send(JSON.stringify(message));
 }
 
-var loginPage = document.querySelector('#login-page'),
-    usernameInput = document.querySelector('#username'),
-    loginButton = document.querySelector('#login'),
-    callPage = document.querySelector('#call-page'),
-    theirUsernameInput = document.querySelector('#their-username'),
-    callButton = document.querySelector('#call'),
-    hangUpButton = document.querySelector('#hang-up');
+let loginPage : any= document.querySelector('#login-page'),
+    usernameInput : any = document.querySelector('#username'),
+    loginButton : any = document.querySelector('#login'),
+    callPage : any = document.querySelector('#call-page'),
+    theirUsernameInput : any = document.querySelector('#their-username'),
+    callButton : any = document.querySelector('#call'),
+    hangUpButton : any = document.querySelector('#hang-up');
 
 callPage.style.display = "none";
 
 // Login when the user clicks the button
-loginButton.addEventListener("click", function (event) {
+loginButton.addEventListener("click", (event : object) => {
   name = usernameInput.value;
 
   console.log(`loginButton click event name: ${name}`);
@@ -72,7 +72,7 @@ loginButton.addEventListener("click", function (event) {
   }
 });
 
-function onLogin(success) {
+const onLogin = (success : boolean) => {
   if (success === false) {
     alert("Login unsuccessful, please try a different name.");
   } else {
@@ -84,11 +84,11 @@ function onLogin(success) {
   }
 }
 
-var yourVideo = document.querySelector('#yours'),
-    theirVideo = document.querySelector('#theirs'),
-    yourConnection, connectedUser, stream;
+let yourVideo : any = document.querySelector('#yours'),
+    theirVideo : any = document.querySelector('#theirs'),
+    yourConnection : any, stream : any;
 
-function startConnection() {
+const startConnection = () => {
   if (hasUserMedia()) {
     navigator.getUserMedia({ video: true, audio: true }, function (myStream) {
       stream = myStream;
@@ -109,8 +109,8 @@ function startConnection() {
   }
 }
 
-function setupPeerConnection(stream) {
-  var configuration = {'iceServers': [
+const setupPeerConnection = (stream: any) => {
+  let configuration = {'iceServers': [
       {'urls': 'stun:stun.services.mozilla.com'},
       {'urls': 'stun:stun.l.google.com:19302'}
     ]};
@@ -119,16 +119,16 @@ function setupPeerConnection(stream) {
   console.log(`setupPeerConnection()`);
 
   // Setup stream listening
-  stream.getTracks().forEach(function (track) {
+  stream.getTracks().forEach((track : any) => {
     console.log("yourConnection.addTrack!");
     yourConnection.addTrack(track, stream);
   });
-  yourConnection.ontrack = function (e) {
+  yourConnection.ontrack = (event: any) => {
     console.log(`yourConnection.ontrack()`);
-    theirVideo.srcObject = e.streams[0];
+    theirVideo.srcObject = event.streams[0];
   };
   // Setup ice handling
-  yourConnection.onicecandidate = function (event) {
+  yourConnection.onicecandidate = (event : any) => {
     console.log(`yourConnection.onicecandidate`);
     if (event.candidate) {
       send({
@@ -139,73 +139,63 @@ function setupPeerConnection(stream) {
   };
 }
 
-function hasUserMedia() {
-  navigator.getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia || navigator.mozGetUserMedia || navigator.msGetUserMedia;
+const hasUserMedia = () => {
+  navigator.getUserMedia = navigator.getUserMedia;
   return !!navigator.getUserMedia;
 }
 
-function hasRTCPeerConnection() {
-  window.RTCPeerConnection = window.RTCPeerConnection || window.webkitRTCPeerConnection || window.mozRTCPeerConnection;
-  window.RTCSessionDescription = window.RTCSessionDescription || window.webkitRTCSessionDescription || window.mozRTCSessionDescription;
-  window.RTCIceCandidate = window.RTCIceCandidate || window.webkitRTCIceCandidate || window.mozRTCIceCandidate;
+const hasRTCPeerConnection = () => {
+  window.RTCPeerConnection = window.RTCPeerConnection;
+  window.RTCSessionDescription = window.RTCSessionDescription;
+  window.RTCIceCandidate = window.RTCIceCandidate;
   return !!window.RTCPeerConnection;
 }
 
-callButton.addEventListener("click", function () {
-  var theirUsername = theirUsernameInput.value;
+callButton.addEventListener("click", () => {
+  let theirUsername = theirUsernameInput.value;
   console.log(`callButton.addEventListener()`);
   if (theirUsername.length > 0) {
     startPeerConnection(theirUsername);
   }
 });
 
-function startPeerConnection(user) {
+const startPeerConnection = async (user : string) => {
   connectedUser = user;
   console.log(`startPeerConnection()`);
-  yourConnection.createOffer()
-      .then(offer => {
-        console.log(`yourConnection.createOffer()`);
-        send({
-          type: "offer",
-          offer: offer
-        });
-        yourConnection.setLocalDescription(offer);
-        console.log(`yourConnection.setLocalDescription() - this is from yourConnection.createOffer()`);
-      })
-      .catch(err => {
-        alert("An error has occurred.");
-      });
+  const offer: any = await yourConnection.createOffer();
+  console.log(`yourConnection.createOffer()`);
+  send({
+    type: "offer",
+    offer: offer
+  });
+  yourConnection.setLocalDescription(offer);
+  console.log(`yourConnection.setLocalDescription() - this is from yourConnection.createOffer()`);
 }
 
-function onOffer(offer, name) {
+const onOffer = async (offer : any, name : string) => {
   console.log(`onOffer()`);
   connectedUser = name;
   yourConnection.setRemoteDescription(new RTCSessionDescription(offer));
-  yourConnection.createAnswer()
-      .then(answer => {
-        console.log(`yourConnection.createAnswer(), yourConnection.setLocalDescription()`);
-        yourConnection.setLocalDescription(answer);
-        send({
-          type: "answer",
-          answer: answer
-        });
-      })
-      .catch(err => {
-        alert("An error has occurred");
-      });
+  const answer: any = await yourConnection.createAnswer();
+  console.log(`yourConnection.createAnswer(), yourConnection.setLocalDescription()`);
+  yourConnection.setLocalDescription(answer);
+  send({
+    type: "answer",
+    answer: answer
+  });
 }
 
-function onAnswer(answer) {
+const onAnswer = (answer: any) => {
   console.log(`onAnswer() - yourConnection.setRemoteDescription()`);
   yourConnection.setRemoteDescription(new RTCSessionDescription(answer));
 }
 
-function onCandidate(candidate) {
+const onCandidate = (candidate: any) => {
   console.log(`onCandidate() - yourConnection.addIceCandidate()`);
   yourConnection.addIceCandidate(new RTCIceCandidate(candidate));
 }
 
-hangUpButton.addEventListener("click", function () {
+hangUpButton.addEventListener("click", () => {
   console.log(`hangUpButton.addEventListener - leave`);
   send({
     type: "leave"
@@ -213,7 +203,7 @@ hangUpButton.addEventListener("click", function () {
   onLeave();
 });
 
-function onLeave() {
+const onLeave = () => {
   console.log(`onLeave()`);
   connectedUser = null;
   theirVideo.srcObject = null;
@@ -222,3 +212,5 @@ function onLeave() {
   yourConnection.ontrack = null;
   setupPeerConnection(stream);
 }
+})();
+
