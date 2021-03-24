@@ -48,7 +48,7 @@ const send = (message : object) => {
   connection.send(JSON.stringify(message));
 }
 
-let loginPage : any= document.querySelector('#login-page'),
+let loginPage : any = document.querySelector('#login-page'),
     usernameInput : any = document.querySelector('#username'),
     loginButton : any = document.querySelector('#login'),
     callPage : any = document.querySelector('#call-page'),

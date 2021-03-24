@@ -6,7 +6,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
 const app = express_1.default();
 const http = require('http').Server(app);
-const port = 3000;
+const port = Number(process.env.NODE_PORT) || 3000;
 console.log(__dirname);
 app.use(express_1.default.static(__dirname + '/public'));
 /*
@@ -119,6 +119,13 @@ wss.on('listening', () => {
     console.log("Server started...");
 });
 http.listen(port, () => {
+    process.send('ready');
     console.log('Listening on', port);
+});
+process.on('SIGINT', function () {
+    http.close(function () {
+        console.log('server closed');
+        process.exit(0);
+    });
 });
 //# sourceMappingURL=server.js.map

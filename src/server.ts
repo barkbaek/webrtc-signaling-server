@@ -1,7 +1,7 @@
 import express from 'express';
 const app = express();
 const http = require('http').Server(app);
-const port : number = 3000;
+const port : number = Number(process.env.NODE_PORT) || 3000;
 
 console.log(__dirname);
 
@@ -133,5 +133,13 @@ wss.on('listening', () => {
 });
 
 http.listen(port, () => {
+    process.send('ready');
     console.log('Listening on', port);
+});
+
+process.on('SIGINT', function () {
+    http.close(function () {
+        console.log('server closed');
+        process.exit(0);
+    })
 });
