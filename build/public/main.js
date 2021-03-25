@@ -50,7 +50,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         }
         connection.send(JSON.stringify(message));
     };
-    let loginPage = document.querySelector('#login-page'), usernameInput = document.querySelector('#username'), loginButton = document.querySelector('#login'), callPage = document.querySelector('#call-page'), theirUsernameInput = document.querySelector('#their-username'), callButton = document.querySelector('#call'), hangUpButton = document.querySelector('#hang-up');
+    const loginPage = document.querySelector('#login-page'), usernameInput = document.querySelector('#username'), loginButton = document.querySelector('#login'), callPage = document.querySelector('#call-page'), theirUsernameInput = document.querySelector('#their-username'), callButton = document.querySelector('#call'), hangUpButton = document.querySelector('#hang-up');
     callPage.style.display = "none";
     // Login when the user clicks the button
     loginButton.addEventListener("click", (event) => {
