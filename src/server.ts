@@ -3,6 +3,7 @@ const logger = require('../config/winston').logger;
 const app = express();
 const http = require('http').Server(app);
 const port : number = Number(process.env.NODE_PORT) || 3000;
+const { METHOD_NAME } = require('./shared/common_types');
 
 console.log(__dirname);
 
@@ -29,70 +30,70 @@ wss.on('connection', (connection: any) => {
         }
 
         switch (data.type) {
-            case "login":
+            case METHOD_NAME.Login:
                 console.log("User logged in as", data.name);
                 if (users.get(data.name)) {
                     sendTo(connection, {
-                        type: "login",
+                        type: METHOD_NAME.Login,
                         success: false
                     });
                 } else {
                     users.set(data.name, connection);
                     connection.name = data.name;
                     sendTo(connection, {
-                        type: "login",
+                        type: METHOD_NAME.Login,
                         success: true
                     });
                 }
 
                 break;
-            case "offer":
+            case METHOD_NAME.Offer:
                 console.log("Sending offer to", data.name);
                 conn = users.get(data.name);
 
                 if (conn != null) {
                     connection.otherName = data.name;
                     sendTo(conn, {
-                        type: "offer",
+                        type: METHOD_NAME.Offer,
                         offer: data.offer,
                         name: connection.name
                     });
                 }
 
                 break;
-            case "answer":
+            case METHOD_NAME.Answer:
                 console.log("Sending answer to", data.name);
                 conn  = users.get(data.name);
 
                 if (conn != null) {
                     connection.otherName = data.name;
                     sendTo(conn, {
-                        type: "answer",
+                        type: METHOD_NAME.Answer,
                         answer: data.answer
                     });
                 }
 
                 break;
-            case "candidate":
+            case METHOD_NAME.Candidate:
                 console.log("Sending candidate to", data.name);
                 conn = users.get(data.name);
 
                 if (conn != null) {
                     sendTo(conn, {
-                        type: "candidate",
+                        type: METHOD_NAME.Candidate,
                         candidate: data.candidate
                     });
                 }
 
                 break;
-            case "leave":
+            case METHOD_NAME.Leave:
                 console.log("Disconnecting user from", data.name);
                 conn = users.get(data.name);
                 Object.assign(conn, { otherName: null });
 
                 if (conn != null) {
                     sendTo(conn, {
-                        type: "leave"
+                        type: METHOD_NAME.Leave
                     });
                 }
 
@@ -117,7 +118,7 @@ wss.on('connection', (connection: any) => {
             
                 if (conn != null) {
                     sendTo(conn, {
-                        type: "leave"
+                        type: METHOD_NAME.Leave
                     });
                 }
             }

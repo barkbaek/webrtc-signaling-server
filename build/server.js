@@ -8,6 +8,7 @@ const logger = require('../config/winston').logger;
 const app = express_1.default();
 const http = require('http').Server(app);
 const port = Number(process.env.NODE_PORT) || 3000;
+const { METHOD_NAME } = require('./shared/common_types');
 console.log(__dirname);
 app.use(express_1.default.static(__dirname + '/public'));
 /*
@@ -29,11 +30,11 @@ wss.on('connection', (connection) => {
             data = {};
         }
         switch (data.type) {
-            case "login":
+            case METHOD_NAME.Login:
                 console.log("User logged in as", data.name);
                 if (users.get(data.name)) {
                     sendTo(connection, {
-                        type: "login",
+                        type: METHOD_NAME.Login,
                         success: false
                     });
                 }
@@ -41,7 +42,7 @@ wss.on('connection', (connection) => {
                     users.set(data.name, connection);
                     connection.name = data.name;
                     sendTo(connection, {
-                        type: "login",
+                        type: METHOD_NAME.Login,
                         success: true
                     });
                 }
