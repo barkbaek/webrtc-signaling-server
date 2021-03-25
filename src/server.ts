@@ -1,4 +1,5 @@
 import express from 'express';
+const logger = require('../config/winston').logger;
 const app = express();
 const http = require('http').Server(app);
 const port : number = Number(process.env.NODE_PORT) || 3000;
@@ -132,8 +133,17 @@ wss.on('listening', () => {
     console.log("Server started...");
 });
 
+app.get('/winston', (req, res) => {
+    logger.info('This is info for winston logger.')
+    res.send("/winston info");
+});
+
+app.get('/error', (req, res) => {
+    logger.error('This is error for winston logger.');
+    res.send("/winston error");
+});
+
 http.listen(port, () => {
-    process.send('ready');
     console.log('Listening on', port);
 });
 

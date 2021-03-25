@@ -4,9 +4,6 @@ module.exports = {
         script: './build/server.js',
         instances: 0,
         exec_mode: 'cluster',
-        wait_ready: true,
-        listen_timeout: 50000,
-        kill_timeout: 5000,
         env: {
             NODE_PORT: "3100",
             NODE_ENV: "development"
@@ -15,7 +12,7 @@ module.exports = {
             NODE_PORT: "3100",
             NODE_ENV: "production"
         },
-        error_file: "./log/err.log",
-        out_file: "./log/out.log"
+        error_file: "./pm2-logs/error/err.log",
+        out_file: "./pm2-logs/out/out.log"
     }]
 }

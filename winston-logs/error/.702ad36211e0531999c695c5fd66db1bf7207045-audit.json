@@ -1,0 +1,14 @@
+{
+    "keep": {
+        "days": false,
+        "amount": 30
+    },
+    "auditLog": "winston-logs\\error\\.702ad36211e0531999c695c5fd66db1bf7207045-audit.json",
+    "files": [
+        {
+            "date": 1616631815155,
+            "name": "winston-logs\\error\\2021-03-25.error.log",
+            "hash": "4d56bf5f0ab8fd291222c1b74c57c07d"
+        }
+    ]
+}
