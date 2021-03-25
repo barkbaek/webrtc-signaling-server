@@ -1,0 +1,14 @@
+{
+    "keep": {
+        "days": false,
+        "amount": 30
+    },
+    "auditLog": "/home/nwbigo/nodejs/webrtc-signaling-server/winston-logs/out/.72cfaf7e97495fa09b003cf92e40bb84639f5317-audit.json",
+    "files": [
+        {
+            "date": 1616670664642,
+            "name": "/home/nwbigo/nodejs/webrtc-signaling-server/winston-logs/out/2021-03-25.log",
+            "hash": "be8c5aeb47eb44a6eedc77a8efaa8b59"
+        }
+    ]
+}
