@@ -11,7 +11,7 @@ connection.onopen = () => {
 connection.onmessage = (message) => {
   console.log("Got message", message.data);
 
-  let data = JSON.parse(message.data);
+  const data = JSON.parse(message.data);
 
   switch(data.type) {
     case "login":
@@ -152,7 +152,7 @@ const hasRTCPeerConnection = () => {
 }
 
 callButton.addEventListener("click", () => {
-  let theirUsername = theirUsernameInput.value;
+  const theirUsername = theirUsernameInput.value;
   console.log(`callButton.addEventListener()`);
   if (theirUsername.length > 0) {
     startPeerConnection(theirUsername);

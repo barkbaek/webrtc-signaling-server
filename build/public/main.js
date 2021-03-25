@@ -17,7 +17,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     // Handle all messages through this callback
     connection.onmessage = (message) => {
         console.log("Got message", message.data);
-        let data = JSON.parse(message.data);
+        const data = JSON.parse(message.data);
         switch (data.type) {
             case "login":
                 onLogin(data.success);
@@ -134,7 +134,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         return !!window.RTCPeerConnection;
     };
     callButton.addEventListener("click", () => {
-        let theirUsername = theirUsernameInput.value;
+        const theirUsername = theirUsernameInput.value;
         console.log(`callButton.addEventListener()`);
         if (theirUsername.length > 0) {
             startPeerConnection(theirUsername);
