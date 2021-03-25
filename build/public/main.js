@@ -23,16 +23,16 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
             case METHOD_NAME.Login:
                 onLogin(data.success);
                 break;
-            case "offer":
+            case METHOD_NAME.Offer:
                 onOffer(data.offer, data.name);
                 break;
-            case "answer":
+            case METHOD_NAME.Answer:
                 onAnswer(data.answer);
                 break;
-            case "candidate":
+            case METHOD_NAME.Candidate:
                 onCandidate(data.candidate);
                 break;
-            case "leave":
+            case METHOD_NAME.Leave:
                 onLeave();
                 break;
             default:
@@ -118,7 +118,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
             console.log(`yourConnection.onicecandidate`);
             if (event.candidate) {
                 send({
-                    type: "candidate",
+                    type: METHOD_NAME.Candidate,
                     candidate: event.candidate
                 });
             }
@@ -147,7 +147,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         const offer = yield yourConnection.createOffer();
         console.log(`yourConnection.createOffer()`);
         send({
-            type: "offer",
+            type: METHOD_NAME.Offer,
             offer: offer
         });
         yourConnection.setLocalDescription(offer);
@@ -161,7 +161,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         console.log(`yourConnection.createAnswer(), yourConnection.setLocalDescription()`);
         yourConnection.setLocalDescription(answer);
         send({
-            type: "answer",
+            type: METHOD_NAME.Answer,
             answer: answer
         });
     });
@@ -176,7 +176,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     hangUpButton.addEventListener("click", () => {
         console.log(`hangUpButton.addEventListener - leave`);
         send({
-            type: "leave"
+            type: METHOD_NAME.Leave
         });
         onLeave();
     });

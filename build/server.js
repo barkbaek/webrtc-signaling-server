@@ -47,46 +47,46 @@ wss.on('connection', (connection) => {
                     });
                 }
                 break;
-            case "offer":
+            case METHOD_NAME.Offer:
                 console.log("Sending offer to", data.name);
                 conn = users.get(data.name);
                 if (conn != null) {
                     connection.otherName = data.name;
                     sendTo(conn, {
-                        type: "offer",
+                        type: METHOD_NAME.Offer,
                         offer: data.offer,
                         name: connection.name
                     });
                 }
                 break;
-            case "answer":
+            case METHOD_NAME.Answer:
                 console.log("Sending answer to", data.name);
                 conn = users.get(data.name);
                 if (conn != null) {
                     connection.otherName = data.name;
                     sendTo(conn, {
-                        type: "answer",
+                        type: METHOD_NAME.Answer,
                         answer: data.answer
                     });
                 }
                 break;
-            case "candidate":
+            case METHOD_NAME.Candidate:
                 console.log("Sending candidate to", data.name);
                 conn = users.get(data.name);
                 if (conn != null) {
                     sendTo(conn, {
-                        type: "candidate",
+                        type: METHOD_NAME.Candidate,
                         candidate: data.candidate
                     });
                 }
                 break;
-            case "leave":
+            case METHOD_NAME.Leave:
                 console.log("Disconnecting user from", data.name);
                 conn = users.get(data.name);
                 Object.assign(conn, { otherName: null });
                 if (conn != null) {
                     sendTo(conn, {
-                        type: "leave"
+                        type: METHOD_NAME.Leave
                     });
                 }
                 break;
@@ -107,7 +107,7 @@ wss.on('connection', (connection) => {
                 Object.assign(conn, { otherName: null });
                 if (conn != null) {
                     sendTo(conn, {
-                        type: "leave"
+                        type: METHOD_NAME.Leave
                     });
                 }
             }
