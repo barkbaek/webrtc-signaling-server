@@ -97,7 +97,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         }
     };
     const setupPeerConnection = (stream) => {
-        let configuration = { 'iceServers': [
+        const configuration = { 'iceServers': [
                 { 'urls': 'stun:stun.services.mozilla.com' },
                 { 'urls': 'stun:stun.l.google.com:19302' }
             ] };
