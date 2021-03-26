@@ -251,17 +251,6 @@ app.get('/error', (req, res) => {
     res.send("/winston error");
 });
 
-app.get('/redis', (req, res) => {
-    const user = {
-        id: "123456",
-        name: "Davis"
-    }
-    publisher.publish("data", JSON.stringify(user));
-    const text = "publishing an event using redis";
-    logger.info(text);
-    res.send(text);
-});
-
 http.listen(port, () => {
     console.log('Listening on', port);
 });
