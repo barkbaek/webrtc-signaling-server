@@ -5,6 +5,8 @@ var METHOD_NAME;
 (function (METHOD_NAME) {
     METHOD_NAME["Answer"] = "Answer";
     METHOD_NAME["Candidate"] = "Candidate";
+    METHOD_NAME["Close"] = "Close";
+    METHOD_NAME["DeleteSessionUsers"] = "DeleteSessionUsers";
     METHOD_NAME["Login"] = "Login";
     METHOD_NAME["Offer"] = "Offer";
     METHOD_NAME["Leave"] = "Leave";

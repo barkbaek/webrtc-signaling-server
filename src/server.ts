@@ -1,4 +1,7 @@
 import express from 'express';
+import redis from 'redis';
+const publisher = redis.createClient({host:"127.0.0.1", port:6379, db: 0});
+const subscriber = redis.createClient({host:"127.0.0.1", port:6379, db: 0});
 const logger = require('../config/winston').logger;
 const app = express();
 const http = require('http').Server(app);
@@ -17,9 +20,94 @@ interface Users {
 const WebSocketServer = require('ws').Server;
 const wss = new WebSocketServer({ port: 8888 });
 let users = new Map<string, object>();
+let sessionUsers = new Map<string, object>();
+
+subscriber.on("message", (channel, message) => {
+    const info = JSON.parse(message);
+    let conn;
+
+    switch (channel) {
+        case METHOD_NAME.Login:
+            sessionUsers.set(info.name, info.connection);
+            break;
+        case METHOD_NAME.Offer:
+            conn = users.get(info.data.name);
+            if (conn != null) {
+                console.log(`subscribe Offer is not null`);
+                console.log(`info.connection.name : ${info.connection.name}`);
+                sendTo(conn, {
+                    type: METHOD_NAME.Offer,
+                    offer: info.data.offer,
+                    name: info.connection.name
+                });
+            } else {
+                console.log(`subscribe Offer is null`);
+            }
+            break;
+        case METHOD_NAME.Candidate:
+            conn = users.get(info.data.name);
+            if (conn != null) {
+                console.log(`subscribe Candidate is not null`);
+                sendTo(conn, {
+                    type: METHOD_NAME.Candidate,
+                    candidate: info.data.candidate
+                });
+            } else {
+                console.log(`subscribe Candidate is null`);
+            }
+        case METHOD_NAME.Answer:
+            conn  = users.get(info.data.name);
+            if (conn != null) {
+                console.log(`subscribe Answer is not null`);
+                sendTo(conn, {
+                    type: METHOD_NAME.Answer,
+                    answer: info.data.answer
+                });
+            } else {
+                console.log(`subscribe Answer is null`);
+            }
+            break;
+        case METHOD_NAME.Leave:
+            conn = users.get(info.data.name);
+            if (conn != null) {
+                console.log(`type Leave - conn is not null`);
+                Object.assign(conn, { otherName: null });
+                sendTo(conn, {
+                        type: METHOD_NAME.Leave
+                });
+            } else {
+                console.log(`subscribe Leave is null`);
+            }
+            break;
+        case METHOD_NAME.Close:
+            conn = users.get(info.initUser);
+            if (conn != null) {
+                console.log(`type Close - conn is not null`);
+                Object.assign(conn, { otherName: null });
+                sendTo(conn, {
+                    type: METHOD_NAME.Leave
+                });
+            } else {
+                console.log(`type Close - conn is null`);
+            }
+            break;
+        case METHOD_NAME.DeleteSessionUsers:
+            sessionUsers.delete(info.leftUser);
+            break;
+        default:
+    }
+});
+subscriber.subscribe(METHOD_NAME.Login);
+subscriber.subscribe(METHOD_NAME.Offer);
+subscriber.subscribe(METHOD_NAME.Candidate);
+subscriber.subscribe(METHOD_NAME.Answer);
+subscriber.subscribe(METHOD_NAME.Leave);
+subscriber.subscribe(METHOD_NAME.Close);
+subscriber.subscribe(METHOD_NAME.DeleteSessionUsers);
 
 wss.on('connection', (connection: any) => {
-    connection.on('message', (message: string) => {
+    connection.on('message', async (message: string) => {
+    
         let data
             , conn;
         try {
@@ -31,46 +119,56 @@ wss.on('connection', (connection: any) => {
 
         switch (data.type) {
             case METHOD_NAME.Login:
-                console.log("User logged in as", data.name);
-                if (users.get(data.name)) {
+                console.log("----------User logged in as", data.name);
+                if (sessionUsers.get(data.name)) {
                     sendTo(connection, {
                         type: METHOD_NAME.Login,
                         success: false
                     });
                 } else {
                     users.set(data.name, connection);
+                    sessionUsers.set(data.name, connection);
+                    publisher.publish(METHOD_NAME.Login, JSON.stringify({ name: data.name, connection: connection }));
                     connection.name = data.name;
                     sendTo(connection, {
                         type: METHOD_NAME.Login,
                         success: true
                     });
                 }
-
                 break;
             case METHOD_NAME.Offer:
                 console.log("Sending offer to", data.name);
                 conn = users.get(data.name);
 
                 if (conn != null) {
+                    console.log(`type Offer - conn is not null`);
                     connection.otherName = data.name;
                     sendTo(conn, {
                         type: METHOD_NAME.Offer,
                         offer: data.offer,
                         name: connection.name
                     });
+                } else {
+                    console.log(`type Offer - conn is null`);
+                    connection.otherName = data.name;
+                    publisher.publish(METHOD_NAME.Offer, JSON.stringify({ data: data, connection: connection }));
                 }
-
                 break;
             case METHOD_NAME.Answer:
                 console.log("Sending answer to", data.name);
                 conn  = users.get(data.name);
 
                 if (conn != null) {
+                    console.log(`type Answer - conn is not null`);
                     connection.otherName = data.name;
                     sendTo(conn, {
                         type: METHOD_NAME.Answer,
                         answer: data.answer
                     });
+                } else {
+                    console.log(`type Answer - conn is null`);
+                    connection.otherName = data.name;
+                    publisher.publish(METHOD_NAME.Answer, JSON.stringify({ data: data, connection: connection }));
                 }
 
                 break;
@@ -79,22 +177,30 @@ wss.on('connection', (connection: any) => {
                 conn = users.get(data.name);
 
                 if (conn != null) {
+                    console.log(`type Candidate - conn is not null`);
                     sendTo(conn, {
                         type: METHOD_NAME.Candidate,
                         candidate: data.candidate
                     });
+                } else {
+                    console.log(`type Candidate - conn is null`);
+                    publisher.publish(METHOD_NAME.Candidate, JSON.stringify({ data: data }));
                 }
 
                 break;
             case METHOD_NAME.Leave:
                 console.log("Disconnecting user from", data.name);
                 conn = users.get(data.name);
-                Object.assign(conn, { otherName: null });
 
                 if (conn != null) {
+                    console.log(`type Leave - conn is not null`);
+                    Object.assign(conn, { otherName: null });
                     sendTo(conn, {
                         type: METHOD_NAME.Leave
                     });
+                } else {
+                    console.log(`type Leave - conn is null`);
+                    publisher.publish(METHOD_NAME.Leave, JSON.stringify({ data: data }));
                 }
 
                 break;
@@ -110,16 +216,17 @@ wss.on('connection', (connection: any) => {
     connection.on('close', () => {
         if (connection.name) {
             users.delete(connection.name);
-
+            publisher.publish(METHOD_NAME.DeleteSessionUsers, JSON.stringify({ leftUser: connection.name }));
             if (connection.otherName) {
                 console.log("Disconnecting user from", connection.otherName);
                 let conn = users.get(connection.otherName);
-                Object.assign(conn, { otherName: null });
-            
                 if (conn != null) {
+                    Object.assign(conn, { otherName: null });
                     sendTo(conn, {
                         type: METHOD_NAME.Leave
                     });
+                } else {
+                    publisher.publish(METHOD_NAME.Close, JSON.stringify({ initUser: connection.otherName }));
                 }
             }
         }
@@ -142,6 +249,17 @@ app.get('/winston', (req, res) => {
 app.get('/error', (req, res) => {
     logger.error('This is error for winston logger.');
     res.send("/winston error");
+});
+
+app.get('/redis', (req, res) => {
+    const user = {
+        id: "123456",
+        name: "Davis"
+    }
+    publisher.publish("data", JSON.stringify(user));
+    const text = "publishing an event using redis";
+    logger.info(text);
+    res.send(text);
 });
 
 http.listen(port, () => {

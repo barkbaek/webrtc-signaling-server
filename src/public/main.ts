@@ -39,6 +39,8 @@ connection.onerror = (err) => {
   console.log("Got error", err);
 };
 
+function isOpen(connection : WebSocket) { return connection.readyState === connection.OPEN }
+
 // Alias for sending messages in JSON format
 const send = (message : object) => {
   console.log(`send message: `);
@@ -46,7 +48,12 @@ const send = (message : object) => {
   if (connectedUser) {
     Object.assign(message, { name: connectedUser });
   }
-  connection.send(JSON.stringify(message));
+  if (!isOpen(connection)) {
+    console.log('---- WebSocket Connection is closed state!!!');
+    return;
+  } else {
+    connection.send(JSON.stringify(message));
+  }
 }
 
 const loginPage : any = document.querySelector('#login-page'),
