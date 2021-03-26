@@ -2,7 +2,7 @@ export enum METHOD_NAME {
     Answer = 'Answer',
     Candidate = 'Candidate',
     Close = 'Close',
-    DeleteSessionUsers = 'DeleteSessionUsers',
+    DeleteSessionUser = 'DeleteSessionUser',
     Login = 'Login',
     Offer = 'Offer',
     Leave = 'Leave'

@@ -91,7 +91,7 @@ subscriber.on("message", (channel, message) => {
                 console.log(`type Close - conn is null`);
             }
             break;
-        case METHOD_NAME.DeleteSessionUsers:
+        case METHOD_NAME.DeleteSessionUser:
             sessionUsers.delete(info.leftUser);
             break;
         default:
@@ -103,7 +103,7 @@ subscriber.subscribe(METHOD_NAME.Candidate);
 subscriber.subscribe(METHOD_NAME.Answer);
 subscriber.subscribe(METHOD_NAME.Leave);
 subscriber.subscribe(METHOD_NAME.Close);
-subscriber.subscribe(METHOD_NAME.DeleteSessionUsers);
+subscriber.subscribe(METHOD_NAME.DeleteSessionUser);
 
 wss.on('connection', (connection: any) => {
     connection.on('message', async (message: string) => {
@@ -216,7 +216,7 @@ wss.on('connection', (connection: any) => {
     connection.on('close', () => {
         if (connection.name) {
             users.delete(connection.name);
-            publisher.publish(METHOD_NAME.DeleteSessionUsers, JSON.stringify({ leftUser: connection.name }));
+            publisher.publish(METHOD_NAME.DeleteSessionUser, JSON.stringify({ leftUser: connection.name }));
             if (connection.otherName) {
                 console.log("Disconnecting user from", connection.otherName);
                 let conn = users.get(connection.otherName);
