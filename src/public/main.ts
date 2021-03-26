@@ -1,7 +1,7 @@
 (() => {
 let name: string;
 let connectedUser: string;
-const connection = new WebSocket('ws://localhost:8888');
+const connection : WebSocket= new WebSocket('ws://localhost:8888');
 const { METHOD_NAME } = require('../shared/common_types');
 
 connection.onopen = () => {
@@ -39,7 +39,7 @@ connection.onerror = (err) => {
   console.log("Got error", err);
 };
 
-function isOpen(connection : WebSocket) { return connection.readyState === connection.OPEN }
+const isOpen = (connection : WebSocket) => { return connection.readyState === connection.OPEN };
 
 // Alias for sending messages in JSON format
 const send = (message : object) => {

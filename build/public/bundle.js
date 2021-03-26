@@ -43,7 +43,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     connection.onerror = (err) => {
         console.log("Got error", err);
     };
-    function isOpen(connection) { return connection.readyState === connection.OPEN; }
+    const isOpen = (connection) => { return connection.readyState === connection.OPEN; };
     // Alias for sending messages in JSON format
     const send = (message) => {
         console.log(`send message: `);
@@ -208,7 +208,7 @@ var METHOD_NAME;
     METHOD_NAME["Answer"] = "Answer";
     METHOD_NAME["Candidate"] = "Candidate";
     METHOD_NAME["Close"] = "Close";
-    METHOD_NAME["DeleteSessionUsers"] = "DeleteSessionUsers";
+    METHOD_NAME["DeleteSessionUser"] = "DeleteSessionUser";
     METHOD_NAME["Login"] = "Login";
     METHOD_NAME["Offer"] = "Offer";
     METHOD_NAME["Leave"] = "Leave";

@@ -44,7 +44,6 @@ subscriber.on("message", (channel, message) => {
             if (conn != null) {
                 console.log(`subscribe Offer is not null`);
                 console.log(`info.connection.name : ${info.connection.name}`);
-                //info.connection.otherName = info.data.name;
                 sendTo(conn, {
                     type: METHOD_NAME.Offer,
                     offer: info.data.offer,
@@ -71,7 +70,6 @@ subscriber.on("message", (channel, message) => {
             conn = users.get(info.data.name);
             if (conn != null) {
                 console.log(`subscribe Answer is not null`);
-                //info.connection.otherName = info.data.name;
                 sendTo(conn, {
                     type: METHOD_NAME.Answer,
                     answer: info.data.answer
@@ -107,7 +105,7 @@ subscriber.on("message", (channel, message) => {
                 console.log(`type Close - conn is null`);
             }
             break;
-        case METHOD_NAME.DeleteSessionUsers:
+        case METHOD_NAME.DeleteSessionUser:
             sessionUsers.delete(info.leftUser);
             break;
         default:
@@ -119,7 +117,7 @@ subscriber.subscribe(METHOD_NAME.Candidate);
 subscriber.subscribe(METHOD_NAME.Answer);
 subscriber.subscribe(METHOD_NAME.Leave);
 subscriber.subscribe(METHOD_NAME.Close);
-subscriber.subscribe(METHOD_NAME.DeleteSessionUsers);
+subscriber.subscribe(METHOD_NAME.DeleteSessionUser);
 wss.on('connection', (connection) => {
     connection.on('message', (message) => __awaiter(void 0, void 0, void 0, function* () {
         let data, conn;
@@ -226,7 +224,7 @@ wss.on('connection', (connection) => {
     connection.on('close', () => {
         if (connection.name) {
             users.delete(connection.name);
-            publisher.publish(METHOD_NAME.DeleteSessionUsers, JSON.stringify({ leftUser: connection.name }));
+            publisher.publish(METHOD_NAME.DeleteSessionUser, JSON.stringify({ leftUser: connection.name }));
             if (connection.otherName) {
                 console.log("Disconnecting user from", connection.otherName);
                 let conn = users.get(connection.otherName);
@@ -256,16 +254,6 @@ app.get('/winston', (req, res) => {
 app.get('/error', (req, res) => {
     logger.error('This is error for winston logger.');
     res.send("/winston error");
-});
-app.get('/redis', (req, res) => {
-    const user = {
-        id: "123456",
-        name: "Davis"
-    };
-    publisher.publish("data", JSON.stringify(user));
-    const text = "publishing an event using redis";
-    logger.info(text);
-    res.send(text);
 });
 http.listen(port, () => {
     console.log('Listening on', port);
