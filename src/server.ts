@@ -19,8 +19,8 @@ interface Users {
 
 const WebSocketServer = require('ws').Server;
 const wss = new WebSocketServer({ port: 8888 });
-let users = new Map<string, object>();
-let sessionUsers = new Map<string, object>();
+const users = new Map<string, object>();
+const sessionUsers = new Set<string>();
 
 subscriber.on("message", (channel, message) => {
     const info = JSON.parse(message);
@@ -28,7 +28,7 @@ subscriber.on("message", (channel, message) => {
 
     switch (channel) {
         case METHOD_NAME.Login:
-            sessionUsers.set(info.name, info.connection);
+            sessionUsers.add(info.name);
             break;
         case METHOD_NAME.Offer:
             conn = users.get(info.data.name);
@@ -120,15 +120,14 @@ wss.on('connection', (connection: any) => {
         switch (data.type) {
             case METHOD_NAME.Login:
                 console.log("----------User logged in as", data.name);
-                if (sessionUsers.get(data.name)) {
+                if (sessionUsers.has(data.name)) {
                     sendTo(connection, {
                         type: METHOD_NAME.Login,
                         success: false
                     });
                 } else {
                     users.set(data.name, connection);
-                    sessionUsers.set(data.name, connection);
-                    publisher.publish(METHOD_NAME.Login, JSON.stringify({ name: data.name, connection: connection }));
+                    publisher.publish(METHOD_NAME.Login, JSON.stringify({ name: data.name }));
                     connection.name = data.name;
                     sendTo(connection, {
                         type: METHOD_NAME.Login,
