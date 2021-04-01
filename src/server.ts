@@ -1,98 +1,98 @@
 import express from 'express';
 import redis from 'redis';
-const publisher = redis.createClient({host:"127.0.0.1", port:6379, db: 0});
-const subscriber = redis.createClient({host:"127.0.0.1", port:6379, db: 0});
+import ioredis from 'ioredis';
+import { METHOD_NAME } from './shared/common_types';
 const logger = require('../config/winston').logger;
 const app = express();
 const http = require('http').Server(app);
 const port : number = Number(process.env.NODE_PORT) || 3000;
-const { METHOD_NAME } = require('./shared/common_types');
+let redisConfig : object = {
+    host: process.env.REDIS_HOST,
+    port: process.env.REDIS_PORT, 
+    db: 0
+};
+const publisher = redis.createClient(redisConfig);
+const subscriber = redis.createClient(redisConfig);
+Object.assign(redisConfig, { family: 4 });
+const ioRedis = new ioredis(redisConfig);
 
-console.log(__dirname);
+console.log(process.pid);
 
 app.use(express.static(__dirname + '/public'));
-/*
-interface Users {
-    [key: string]: object
-}
-*/
 
 const WebSocketServer = require('ws').Server;
 const wss = new WebSocketServer({ port: 8888 });
 const users = new Map<string, object>();
-const sessionUsers = new Set<string>();
 
-subscriber.on("message", (channel, message) => {
+subscriber.on("message", async (channel, message) => {
     const info = JSON.parse(message);
-    let conn;
+    let conn
+        , c;
 
     switch (channel) {
         case METHOD_NAME.Login:
-            sessionUsers.add(info.name);
+            await ioRedis.sadd("sessionUsers", info.name);
             break;
         case METHOD_NAME.Offer:
-            conn = users.get(info.data.name);
-            if (conn != null) {
+            c = await ioRedis.hget(`users:${process.pid}`, info.toUser);
+
+            if (c != null) {
+                conn = users.get(info.toUser);
                 console.log(`subscribe Offer is not null`);
-                console.log(`info.connection.name : ${info.connection.name}`);
+                console.log(`info.fromUser : ${info.fromUser}`);
                 sendTo(conn, {
                     type: METHOD_NAME.Offer,
-                    offer: info.data.offer,
-                    name: info.connection.name
+                    offer: info.offer,
+                    name: info.fromUser
                 });
             } else {
                 console.log(`subscribe Offer is null`);
             }
             break;
         case METHOD_NAME.Candidate:
-            conn = users.get(info.data.name);
-            if (conn != null) {
+            c = await ioRedis.hget(`users:${process.pid}`, info.toUser);
+            
+            if (c != null) {
+                conn = users.get(info.toUser);
                 console.log(`subscribe Candidate is not null`);
                 sendTo(conn, {
                     type: METHOD_NAME.Candidate,
-                    candidate: info.data.candidate
+                    candidate: info.candidate
                 });
             } else {
                 console.log(`subscribe Candidate is null`);
             }
         case METHOD_NAME.Answer:
-            conn  = users.get(info.data.name);
-            if (conn != null) {
+            c = await ioRedis.hget(`users:${process.pid}`, info.toUser);
+
+            if (c != null) {
+                conn = users.get(info.toUser);
                 console.log(`subscribe Answer is not null`);
                 sendTo(conn, {
                     type: METHOD_NAME.Answer,
-                    answer: info.data.answer
+                    answer: info.answer
                 });
             } else {
                 console.log(`subscribe Answer is null`);
             }
             break;
         case METHOD_NAME.Leave:
-            conn = users.get(info.data.name);
-            if (conn != null) {
-                console.log(`type Leave - conn is not null`);
-                Object.assign(conn, { otherName: null });
-                sendTo(conn, {
-                        type: METHOD_NAME.Leave
-                });
-            } else {
-                console.log(`subscribe Leave is null`);
-            }
-            break;
         case METHOD_NAME.Close:
-            conn = users.get(info.initUser);
-            if (conn != null) {
-                console.log(`type Close - conn is not null`);
+            c = await ioRedis.hget(`users:${process.pid}`, info.initUser);
+
+            if (c != null) {
+                conn = users.get(info.initUser);
+                console.log(`subscribe Leave, Close - conn is not null`);
                 Object.assign(conn, { otherName: null });
                 sendTo(conn, {
                     type: METHOD_NAME.Leave
                 });
             } else {
-                console.log(`type Close - conn is null`);
+                console.log(`subscribe Leave, Close - conn is null`);
             }
             break;
         case METHOD_NAME.DeleteSessionUser:
-            sessionUsers.delete(info.leftUser);
+            await ioRedis.srem("sessionUsers", info.leftUser);
             break;
         default:
     }
@@ -106,10 +106,12 @@ subscriber.subscribe(METHOD_NAME.Close);
 subscriber.subscribe(METHOD_NAME.DeleteSessionUser);
 
 wss.on('connection', (connection: any) => {
+
     connection.on('message', async (message: string) => {
     
         let data
-            , conn;
+            , conn
+            , c;
         try {
             data = JSON.parse(message);
         } catch (e) {
@@ -120,15 +122,17 @@ wss.on('connection', (connection: any) => {
         switch (data.type) {
             case METHOD_NAME.Login:
                 console.log("----------User logged in as", data.name);
-                if (sessionUsers.has(data.name)) {
+                const result = await ioRedis.sismember("sessionUsers", data.name);
+                if (result === 1) {
                     sendTo(connection, {
                         type: METHOD_NAME.Login,
                         success: false
                     });
                 } else {
-                    users.set(data.name, connection);
                     publisher.publish(METHOD_NAME.Login, JSON.stringify({ name: data.name }));
                     connection.name = data.name;
+                    users.set(data.name, connection);
+                    await ioRedis.hset(`users:${process.pid}`, data.name, data.name); // 사실 인메모리 users만 사용하여 기능 구현 가능하지만(필요 없지만) hash 연습을 위해 사용.
                     sendTo(connection, {
                         type: METHOD_NAME.Login,
                         success: true
@@ -137,9 +141,10 @@ wss.on('connection', (connection: any) => {
                 break;
             case METHOD_NAME.Offer:
                 console.log("Sending offer to", data.name);
-                conn = users.get(data.name);
+                c = await ioRedis.hget(`users:${process.pid}`, data.name);
 
-                if (conn != null) {
+                if (c != null) {
+                    conn = users.get(data.name);
                     console.log(`type Offer - conn is not null`);
                     connection.otherName = data.name;
                     sendTo(conn, {
@@ -150,14 +155,15 @@ wss.on('connection', (connection: any) => {
                 } else {
                     console.log(`type Offer - conn is null`);
                     connection.otherName = data.name;
-                    publisher.publish(METHOD_NAME.Offer, JSON.stringify({ data: data, connection: connection }));
+                    publisher.publish(METHOD_NAME.Offer, JSON.stringify({ offer: data.offer, fromUser:connection.name, toUser: data.name }));
                 }
                 break;
             case METHOD_NAME.Answer:
                 console.log("Sending answer to", data.name);
-                conn  = users.get(data.name);
+                c = await ioRedis.hget(`users:${process.pid}`, data.name);
 
-                if (conn != null) {
+                if (c != null) {
+                    conn = users.get(data.name);
                     console.log(`type Answer - conn is not null`);
                     connection.otherName = data.name;
                     sendTo(conn, {
@@ -167,15 +173,16 @@ wss.on('connection', (connection: any) => {
                 } else {
                     console.log(`type Answer - conn is null`);
                     connection.otherName = data.name;
-                    publisher.publish(METHOD_NAME.Answer, JSON.stringify({ data: data, connection: connection }));
+                    publisher.publish(METHOD_NAME.Answer, JSON.stringify({ answer: data.answer, toUser: data.name }));
                 }
 
                 break;
             case METHOD_NAME.Candidate:
                 console.log("Sending candidate to", data.name);
-                conn = users.get(data.name);
+                c = await ioRedis.hget(`users:${process.pid}`, data.name);
 
-                if (conn != null) {
+                if (c != null) {
+                    conn = users.get(data.name);
                     console.log(`type Candidate - conn is not null`);
                     sendTo(conn, {
                         type: METHOD_NAME.Candidate,
@@ -183,15 +190,16 @@ wss.on('connection', (connection: any) => {
                     });
                 } else {
                     console.log(`type Candidate - conn is null`);
-                    publisher.publish(METHOD_NAME.Candidate, JSON.stringify({ data: data }));
+                    publisher.publish(METHOD_NAME.Candidate, JSON.stringify({ candidate: data.candidate, toUser: data.name }));
                 }
 
                 break;
             case METHOD_NAME.Leave:
                 console.log("Disconnecting user from", data.name);
-                conn = users.get(data.name);
+                c = await ioRedis.hget(`users:${process.pid}`, data.name);
 
-                if (conn != null) {
+                if (c != null) {
+                    conn = users.get(data.name);
                     console.log(`type Leave - conn is not null`);
                     Object.assign(conn, { otherName: null });
                     sendTo(conn, {
@@ -199,7 +207,7 @@ wss.on('connection', (connection: any) => {
                     });
                 } else {
                     console.log(`type Leave - conn is null`);
-                    publisher.publish(METHOD_NAME.Leave, JSON.stringify({ data: data }));
+                    publisher.publish(METHOD_NAME.Leave, JSON.stringify({ initUser: data.name }));
                 }
 
                 break;
@@ -212,14 +220,16 @@ wss.on('connection', (connection: any) => {
         }
     });
 
-    connection.on('close', () => {
+    connection.on('close', async () => {
         if (connection.name) {
             users.delete(connection.name);
+            await ioRedis.hdel(`users:${process.pid}`, connection.name);
             publisher.publish(METHOD_NAME.DeleteSessionUser, JSON.stringify({ leftUser: connection.name }));
             if (connection.otherName) {
                 console.log("Disconnecting user from", connection.otherName);
-                let conn = users.get(connection.otherName);
-                if (conn != null) {
+                const c = await ioRedis.hget(`users:${process.pid}`, connection.otherName);
+                if (c != null) {
+                    let conn = users.get(connection.otherName);
                     Object.assign(conn, { otherName: null });
                     sendTo(conn, {
                         type: METHOD_NAME.Leave
@@ -233,7 +243,11 @@ wss.on('connection', (connection: any) => {
 });
 
 const sendTo = (conn: any, message: object) => {
-    conn.send(JSON.stringify(message));
+    try {
+        conn.send(JSON.stringify(message));
+    } catch (e) {
+        console.log(`sendTo error: ${e}`);
+    }
 };
 
 wss.on('listening', () => {
@@ -250,13 +264,50 @@ app.get('/error', (req, res) => {
     res.send("/winston error");
 });
 
+app.get('/hset', async (req, res) => {
+    await ioRedis.hset("users", "a", JSON.stringify({connection: "conn is a"}));
+    res.send("hset");
+});
+
+app.get('/hget', async (req, res) => {
+    const data = await ioRedis.hget("users", "a");
+    const info = JSON.parse(data);
+    console.log(`hget - info: `);
+    console.dir(info);
+    // 비어 있으면 null이 나옴.
+    res.send("hget");
+});
+
+app.get('/hdel', async (req, res) => {
+    await ioRedis.hdel("users", "a");
+    res.send("hdel");
+});
+
+app.get('/sadd', async (req, res) => {
+    await ioRedis.sadd("sessionUsers", "a");
+    res.send("sadd");
+});
+
+app.get('/srem', async (req, res) => {
+    await ioRedis.srem("sessionUsers", "a");
+    res.send("srem");
+});
+
+app.get('/sismember', async (req, res) => {
+    const result = await ioRedis.sismember("sessionUsers", "a");
+    console.log(`sismember - result: ${result}, type: ${typeof result}`);
+    // 있을 경우 1. 없을 경우 0. type은 number
+    res.send("sismember");
+});
+
 http.listen(port, () => {
     console.log('Listening on', port);
 });
 
 process.on('SIGINT', function () {
-    http.close(function () {
+    http.close(async function () {
         console.log('server closed');
+        await ioRedis.flushall();
         process.exit(0);
     })
 });
